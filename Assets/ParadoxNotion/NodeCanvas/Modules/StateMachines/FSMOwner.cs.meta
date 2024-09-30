@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 4a7dbb6bbdf4ffb46ab7dd87ba8191e7
+labels:
+- AI
+- visualscripting
+- FSM
+- state
+- flow
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {fileID: 2800000, guid: b5eeec78a0081094cb8dfeb83808d762, type: 3}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
