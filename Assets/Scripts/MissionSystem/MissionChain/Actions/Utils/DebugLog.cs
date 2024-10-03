@@ -43,13 +43,7 @@ namespace RedSaw.MissionSystem
                 return $"Output: \"{message}\"";
             }
         }
-
-        protected override GenericMenu OnCreateContextMenu(GenericMenu menu)
-        {
-            menu.AddItem(new GUIContent("子类菜单测试"), false, () => Debug.Log("子类菜单测试"));
-            return menu;
-        }
-
+        
         protected override void OnInspectorGUI()
         {
             message = UnityEditor.EditorGUILayout.TextField("Message", message);

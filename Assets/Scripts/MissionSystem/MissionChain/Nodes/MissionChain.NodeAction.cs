@@ -3,7 +3,6 @@ using System.Linq;
 using UnityEngine;
 using ParadoxNotion.Design;
 using ParadoxNotion;
-using UnityEditor;
 
 namespace RedSaw.MissionSystem
 {
@@ -50,6 +49,33 @@ namespace RedSaw.MissionSystem
             /* do nothing */
         }
 
+        /// <summary>add a new action</summary>
+        public void AddAction(ActionBase newAction)
+        {
+            if (action == null)
+            {
+                UndoUtility.RecordObject(graph, "Action Assigned");
+                action = newAction;
+            }
+            else
+            {
+                UndoUtility.RecordObject(graph, "Action Grouped");
+                if (action is ActionGroup group)
+                    group.AddAction(newAction);
+                else
+                {
+                    var newGroup = new ActionGroup
+                    {
+                        _node = this,
+                        _unfolded = true
+                    };
+                    newGroup.AddAction(action);
+                    newGroup.AddAction(newAction);
+                    action = newGroup;
+                }
+            }
+        }
+
         public void UnGrouped()
         {
             if (action is ActionGroup group)
@@ -72,31 +98,18 @@ namespace RedSaw.MissionSystem
                 {
                     var newAction = (ActionBase)Activator.CreateInstance(t);
                     newAction._node = this;
-                    /* create a new group when action is not null */
-                    if (action == null)
-                    {
-                        UndoUtility.RecordObject(graph, "Action Assigned");
-                        action = newAction;
-                    }
-                    else
-                    {
-                        UndoUtility.RecordObject(graph, "Action Grouped");
-                        if (action is ActionGroup group)
-                            group.AddAction(newAction);
-                        else
-                        {
-                            var newGroup = new ActionGroup
-                            {
-                                _node = this
-                            };
-                            newGroup.AddAction(action);
-                            newGroup.AddAction(newAction);
-                            action = newGroup;
-                        }
-                    }
+                    AddAction(newAction);
                 };
 
                 var menu = EditorUtils.GetTypeSelectionMenu(baseType, TaskTypeSelected);
+                if (CopyBuffer.TryGetCache<ActionBase>(out var copiedAction))
+                {
+                    menu.AddSeparator("/");
+                    menu.AddItem(new GUIContent($"Paste {copiedAction.Summary}"), false, () => {
+                        AddAction(Utils.CopyObject(copiedAction));
+                    });
+                }
+                    
                 menu.ShowAsBrowser(label, baseType);
             }
 
@@ -111,9 +124,13 @@ namespace RedSaw.MissionSystem
         protected override void OnNodeGUI()
         {
             GUILayout.BeginVertical(Styles.roundedBox);
-            if (action != null)
+            if (action is null)
             {
-                GUILayout.Label(action.Title);
+                GUILayout.Label("<i><color=#969696>No Action Assigned..</color></i>");
+            }
+            else
+            {
+                GUILayout.Label(action.Summary);
             }
             GUILayout.EndVertical();
         }

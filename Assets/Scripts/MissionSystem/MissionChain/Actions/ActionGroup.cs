@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
+using System.Collections.Generic;
 using ParadoxNotion.Design;
 using UnityEditor;
 using UnityEngine;
@@ -9,7 +9,7 @@ namespace RedSaw.MissionSystem
     [DoNotList]
     public class ActionGroup : ActionBase
     {
-        private readonly List<ActionBase> _actions = new List<ActionBase>();
+        [SerializeField] private readonly List<ActionBase> _actions = new List<ActionBase>();
         public override void Execute()
         {
             foreach (var action in _actions)
@@ -71,7 +71,7 @@ namespace RedSaw.MissionSystem
         }
 
 #if UNITY_EDITOR
-        private int selectedIdx = -1;
+        private int selectedIdx = 0;
         public override string Title => "Action Group";
 
         public override string Summary
@@ -81,34 +81,61 @@ namespace RedSaw.MissionSystem
                 var result = new StringBuilder();
                 foreach (var action in _actions)
                     result.Append(action.Summary + "\n");
-                return result.ToString();
+                return result.ToString().Trim('\n');
             }
         }
-        
-        public override void DrawInspector()
+
+        public sealed override void Reset()
         {
-            DrawTitleBar();
-            if (_unfolded)
+            foreach (var action in _actions)
+                action.Reset();
+        }
+
+        protected override void OnInspectorGUI()
+        {
+            EditorUtils.ReorderableList(_actions, (idx, selected) =>
             {
-                EditorUtils.ReorderableList(_actions, (idx, selected) =>
+                var _action = _actions[idx];
+
+                /* 
+                    绘制动作摘要信息和删除按钮
+                    draw action summaryInfo and delete button 
+                */
+                GUI.color = Color.white.WithAlpha(selectedIdx == idx ? 0.75f : 0.25f);
+                GUILayout.BeginHorizontal("box");
+                GUI.color = Color.white.WithAlpha(0.8f);
+                GUILayout.Label($"<size=13>{_action.Summary}</size>");
+                if (GUILayout.Button("X", GUILayout.Width(20)))
                 {
-                    var _action = _actions[idx];
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label(_action.Summary);
-                    if (GUILayout.Button("X", GUILayout.Width(20)))
-                    {
-                        UndoUtility.RecordObject(_node.graph, "Action Removed");
-                        _node.DeleteAction(_action);
-                    }
-                    GUILayout.EndHorizontal();
-                    if (selected) selectedIdx = idx;
-                });
-                
-                if (selectedIdx != -1)
-                {
-                    var selectedAction = _actions[selectedIdx];
-                    selectedAction.DrawInspector();
+                    UndoUtility.RecordObject(_node.graph, "Action Removed");
+                    _node.DeleteAction(_action);
                 }
+                GUILayout.EndHorizontal();
+
+                /* 
+                    点击时选中目标选项
+                    selected target option while clicked 
+                */
+                var lastRect = GUILayoutUtility.GetLastRect();
+                EditorGUIUtility.AddCursorRect(lastRect, MouseCursor.Link);
+                var e = Event.current;
+                if (e.type == EventType.MouseDown && e.button == 0 && lastRect.Contains(e.mousePosition))
+                {
+                    selectedIdx = idx;
+                    _actions[selectedIdx]._unfolded = true;
+                }
+
+                GUI.color = Color.white;
+            });
+                
+            /* 
+                绘制选中的行为节点的检查器
+                draw selected action's inspector
+            */                
+            if (selectedIdx >= 0)
+            {
+                var selectedAction = _actions[selectedIdx];
+                selectedAction.DrawInspector();
             }
         }
 #endif
